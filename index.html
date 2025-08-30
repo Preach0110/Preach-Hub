@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Preach Music Hub</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b0b0b" />
+  <style>
+    :root { --bg:#0b0b0b; --panel:#141414; --line:#222; --text:#f5f5f5; --muted:#bdbdbd; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, Arial, sans-serif; background:var(--bg); color:var(--text); }
+    header { position:sticky; top:0; z-index:2; background:#0f0f0f; border-bottom:1px solid var(--line); padding:14px 16px; }
+    h1 { margin:0; font-size:18px; letter-spacing:.4px; }
+    .sub { color:var(--muted); font-size:12px; }
+    .wrap { max-width:980px; margin:0 auto; padding:16px; }
+    .row { display:grid; gap:10px; }
+    @media(min-width:720px){ .row-2 { grid-template-columns:1fr 1fr; } .row-3 { grid-template-columns:1fr 1fr 1fr; } }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; margin:12px 0; }
+    input, textarea, button, select {
+      width:100%; padding:10px; border-radius:12px; border:1px solid var(--line);
+      background:#0f0f0f; color:var(--text);
+    }
+    button { cursor:pointer; }
+    .muted { color:var(--muted); font-size:12px; }
+    .pill { display:inline-block; padding:4px 10px; border:1px solid var(--line); border-radius:999px; margin-right:6px; }
+    nav { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+    a { color:#9bdcff; text-decoration:none; }
+    .right { float:right; }
+    .tabs { display:flex; gap:6px; margin:10px 0; flex-wrap:wrap; }
+    .tab { padding:8px 12px; border:1px solid var(--line); border-radius:999px; cursor:pointer; }
+    .tab.active { background:#1b1b1b; }
+    .list-empty { color:var(--muted); font-style:italic; }
+    .title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .inline { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    audio { width:100%; margin-top:8px; }
+    .small { font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-row">
+      <div>
+        <h1>Preach Music Hub</h1>
+        <div class="sub">Your private pocket control room — drafts, links, lyrics, setlists.</div>
+      </div>
+      <div class="inline">
+        <button class="pill" id="installBtn" hidden>➕ Install</button>
+        <a class="pill" href="https://preachofficial.com" target="_blank" rel="noopener">🌐 Site</a>
+        <a class="pill" href="https://youtube.com/@preachentertainment" target="_blank" rel="noopener">▶️ YouTube</a>
+        <a class="pill" href="https://open.spotify.com/artist/5UMTaJf0ZImZp2skfDNIMx" target="_blank" rel="noopener">🎧 Spotify</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab active" data-tab="releases">Releases</div>
+      <div class="tab" data-tab="unreleased">Unreleased</div>
+      <div class="tab" data-tab="lyrics">Lyrics</div>
+      <div class="tab" data-tab="setlist">Setlist</div>
+      <div class="tab" data-tab="epk">EPK</div>
+      <div class="tab" data-tab="links">Smart Links</div>
+    </div>
+
+    <!-- Releases (public links to live tracks) -->
+    <section class="card" data-pane="releases">
+      <h3>Releases</h3>
+      <div class="row row-2">
+        <input id="relTitle" placeholder="Title (e.g., Better Off Alone)" />
+        <input id="relURL" placeholder="Link (Spotify/YouTube/Apple/SoundCloud)" />
+      </div>
+      <div class="row row-2">
+        <input id="relCover" placeholder="Cover art URL (optional)" />
+        <input id="relNotes" placeholder="Notes (feat., prod., release date)" />
+      </div>
+      <button id="addRelease">Add Release</button>
+      <div id="releaseList" style="margin-top:8px;"></div>
+    </section>
+
+    <!-- Unreleased (private ideas, demos, refs) -->
+    <section class="card" data-pane="unreleased" hidden>
+      <h3>Unreleased</h3>
+      <div class="row row-2">
+        <input id="unTitle" placeholder="Working title" />
+        <input id="unAudio" placeholder="Audio link (Drive, Dropbox, Suno, etc.)" />
+      </div>
+      <textarea id="unNotes" rows="3" placeholder="Concept, vibe, TODOs, who to feature…"></textarea>
+      <button id="addUnrel">Add Unreleased</button>
+      <div id="unrelList" style="margin-top:8px;"></div>
+    </section>
+
+    <!-- Lyrics notebook -->
+    <section class="card" data-pane="lyrics" hidden>
+      <h3>Lyrics Notebook</h3>
+      <div class="row row-2">
+        <input id="lyrTitle" placeholder="Song / Section (e.g., Last Cigarette - Verse 1)" />
+        <select id="lyrTag">
+          <option>Verse</option>
+          <option>Hook</option>
+          <option>Bridge</option>
+          <option>Freestyle</option>
+        </select>
+      </div>
+      <textarea id="lyrBody" rows="10" placeholder="Write here… (auto-saves to your device)"></textarea>
+      <button id="addLyric">Save Entry</button>
+      <div class="inline small">
+        <button id="exportLyrics">⬇️ Export .txt</button>
+        <button id="clearLyrics">🗑️ Clear All (lyrics only)</button>
+      </div>
+      <div id="lyricsList" style="margin-top:8px;"></div>
+    </section>
+
+    <!-- Setlist -->
+    <section class="card" data-pane="setlist" hidden>
+      <h3>Setlist Builder</h3>
+      <div class="row row-2">
+        <input id="setTitle" placeholder="Track title" />
+        <input id="setCue" placeholder="Cue (key line / drop / BPM note)" />
+      </div>
+      <button id="addSet">Add to Set</button>
+      <div id="setList" style="margin-top:8px;"></div>
+      <div class="inline small">
+        <button id="exportSet">⬇️ Export .txt</button>
+        <button id="clearSet">🗑️ Clear Setlist</button>
+      </div>
+    </section>
+
+    <!-- EPK -->
+    <section class="card" data-pane="epk" hidden>
+      <h3>EPK (Press Kit)</h3>
+      <div class="row row-2">
+        <input id="epkBio" placeholder="One-liner bio (e.g., Cleveland-born rapper, raw & relentless.)" />
+        <input id="epkPhoto" placeholder="Press photo URL (optional)" />
+      </div>
+      <div class="row row-3">
+        <input id="epkInsta" placeholder="Instagram URL" />
+        <input id="epkYt" placeholder="YouTube URL" />
+        <input id="epkTt" placeholder="TikTok URL" />
+      </div>
+      <div class="row row-3">
+        <input id="epkBook" placeholder="Booking email" />
+        <input id="epkMgmt" placeholder="Management email" />
+        <input id="epkSite" placeholder="Website URL" />
+      </div>
+      <button id="saveEPK">Save EPK</button>
+      <div id="epkView" class="muted" style="margin-top:8px;"></div>
+    </section>
+
+    <!-- Smart Links -->
+    <section class="card" data-pane="links" hidden>
+      <h3>Smart Links</h3>
+      <div class="row row-2">
+        <input id="smartTitle" placeholder="Label (e.g., Linktree, All Links)" />
+        <input id="smartURL" placeholder="URL" />
+      </div>
+      <button id="addSmart">Add Link</button>
+      <div id="smartList" style="margin-top:8px;"></div>
+    </section>
+
+    <p class="muted">Everything saves locally on this device. Use Export to back up setlists or lyrics.</p>
+  </div>
+
+  <script>
+    // Tabs
+    const tabs = document.querySelectorAll('.tab');
+    const panes = document.querySelectorAll('[data-pane]');
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      panes.forEach(p => p.hidden = true);
+      t.classList.add('active');
+      document.querySelector('[data-pane="'+t.dataset.tab+'"]').hidden = false;
+    }));
+
+    // Local storage helpers
+    const S = {
+      get: (k, def=[]) => JSON.parse(localStorage.getItem(k) || JSON.stringify(def)),
+      set: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+    };
+    const G = { set: (k, v) => localStorage.setItem(k, JSON.stringify(v)), get: (k, d={}) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)) };
+
+    // Utility: download text
+    function download(filename, text) {
+      const el = document.createElement('a');
+      el.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      el.setAttribute('download', filename);
+      el.style.display = 'none';
+      document.body.appendChild(el);
+      el.click();
+      document.body.removeChild(el);
+    }
+
+    // ---------- Releases ----------
+    const releaseList = document.getElementById('releaseList');
+    function renderReleases(){
+      const list = S.get('releases');
+      releaseList.innerHTML = list.map((r,i)=>`
+        <div class="card">
+          <div class="title-row">
+            <div><strong>${r.title||'Untitled'}</strong> <span class="muted">${r.notes||''}</span></div>
+            <div class="inline">
+              <a class="pill" href="${r.url}" target="_blank" rel="noopener">Open</a>
+              <button class="pill" onclick="delRel(${i})">🗑️</button>
+            </div>
+          </div>
+          ${r.cover ? `<img src="${r.cover}" alt="cover" style="width:100%; border-radius:12px; margin-top:8px;">` : ''}
+        </div>`).join('') || '<div class="list-empty">No releases yet.</div>';
+    }
+    function delRel(i){ const a=S.get('releases'); a.splice(i,1); S.set('releases',a); renderReleases(); }
+    document.getElementById('addRelease').onclick = () => {
+      const title = document.getElementById('relTitle').value.trim();
+      const url = document.getElementById('relURL').value.trim();
+      const cover = document.getElementById('relCover').value.trim();
+      const notes = document.getElementById('relNotes').value.trim();
+      if(!url) return;
+      const list=S.get('releases'); list.unshift({title,url,cover,notes,ts:Date.now()}); S.set('releases',list);
+      document.getElementById('relTitle').value=''; document.getElementById('relURL').value='';
+      document.getElementById('relCover').value=''; document.getElementById('relNotes').value=''; renderReleases();
+    };
+
+    // ---------- Unreleased ----------
+    const unrelList = document.getElementById('unrelList');
+    function renderUnrel(){
+      const list = S.get('unreleased');
+      unrelList.innerHTML = list.map((u,i)=>`
+        <div class="card">
+          <div class="title-row">
+            <div><strong>${u.title||'Untitled'}</strong></div>
+            <div class="inline">
+              ${u.audio ? `<a class="pill" href="${u.audio}" target="_blank" rel="noopener">Audio</a>` : ''}
+              <button class="pill" onclick="delUnrel(${i})">🗑️</button>
+            </div>
+          </div>
+          <div class="muted">${u.notes||''}</div>
+        </div>`).join('') || '<div class="list-empty">No unreleased tracks yet.</div>';
+    }
+    function delUnrel(i){ const a=S.get('unreleased'); a.splice(i,1); S.set('unreleased',a); renderUnrel(); }
+    document.getElementById('addUnrel').onclick = () => {
+      const title = document.getElementById('unTitle').value.trim();
+      const audio = document.getElementById('unAudio').value.trim();
+      const notes = document.getElementById('unNotes').value.trim();
+      const list=S.get('unreleased'); list.unshift({title,audio,notes,ts:Date.now()}); S.set('unreleased',list);
+      document.getElementById('unTitle').value=''; document.getElementById('unAudio').value=''; document.getElementById('unNotes').value=''; renderUnrel();
+    };
+
+    // ---------- Lyrics ----------
+    const lyricsList = document.getElementById('lyricsList');
+    function renderLyrics(){
+      const list = S.get('lyrics');
+      lyricsList.innerHTML = list.map((l,i)=>`
+        <div class="card">
+          <div class="title-row">
+            <div><strong>${l.title||'Untitled'}</strong> <span class="pill">${l.tag||'Verse'}</span></div>
+            <button class="pill" onclick="delLyric(${i})">🗑️</button>
+          </div>
+          <pre style="white-space:pre-wrap; font-family:inherit; margin-top:8px;">${l.body||''}</pre>
+        </div>`).join('') || '<div class="list-empty">No lyrics saved yet.</div>';
+    }
+    function delLyric(i){ const a=S.get('lyrics'); a.splice(i,1); S.set('lyrics',a); renderLyrics(); }
+    document.getElementById('addLyric').onclick = () => {
+      const title = document.getElementById('lyrTitle').value.trim();
+      const tag = document.getElementById('lyrTag').value;
+      const body = document.getElementById('lyrBody').value;
+      if(!body.trim()) return;
+      const list=S.get('lyrics'); list.unshift({title,tag,body,ts:Date.now()}); S.set('lyrics',list);
+      document.getElementById('lyrTitle').value=''; document.getElementById('lyrBody').value=''; renderLyrics();
+    };
+    document.getElementById('exportLyrics').onclick = ()=> {
+      const list=S.get('lyrics');
+      const txt=list.map(l=>`### ${l.title||'Untitled'} [${l.tag||'Verse'}]\n${l.body}\n`).join('\n');
+      download('preach_lyrics.txt', txt || 'No lyrics.');
+    };
+    document.getElementById('clearLyrics').onclick = ()=> { if(confirm('Clear ALL saved lyrics?')) { S.set('lyrics',[]); renderLyrics(); } };
+
+    // ---------- Setlist ----------
+    const setList = document.getElementById('setList');
+    function renderSet(){
+      const list = S.get('setlist');
+      setList.innerHTML = list.map((s,i)=>`
+        <div class="card">
+          <div class="title-row">
+            <div><strong>${s.title||'Untitled'}</strong> <span class="muted">${s.cue||''}</span></div>
+            <button class="pill" onclick="delSet(${i})">🗑️</button>
+          </div>
+        </div>`).join('') || '<div class="list-empty">No set items yet.</div>';
+    }
+    function delSet(i){ const a=S.get('setlist'); a.splice(i,1); S.set('setlist',a); renderSet(); }
+    document.getElementById('addSet').onclick = () => {
+      const title = document.getElementById('setTitle').value.trim();
+      const cue = document.getElementById('setCue').value.trim();
+      const list=S.get('setlist'); list.push({title,cue,ts:Date.now()}); S.set('setlist',list);
+      document.getElementById('setTitle').value=''; document.getElementById('setCue').value=''; renderSet();
+    };
+    document.getElementById('exportSet').onclick = ()=> {
+      const list=S.get('setlist'); const txt=list.map((s,i)=>f"{i+1}. {s.title} — {s.cue or ''}").join('\n');
+      download('preach_setlist.txt', txt or 'No setlist.');
+    };
+    document.getElementById('clearSet').onclick = ()=> { if(confirm('Clear setlist?')) { S.set('setlist',[]); renderSet(); } };
+
+    // ---------- EPK ----------
+    const epkView = document.getElementById('epkView');
+    function renderEPK(){
+      const e = G.get('epk');
+      epkView.innerHTML = `
+        <div class="card">
+          <div><strong>Bio:</strong> ${e.bio||'—'}</div>
+          ${e.photo? `<div style='margin-top:8px'><img src='${e.photo}' style='width:100%;border-radius:12px'></div>`: ''}
+          <div class="row row-3" style="margin-top:8px">
+            ${e.insta? `<a class='pill' href='${e.insta}' target='_blank'>Instagram</a>`:''}
+            ${e.yt? `<a class='pill' href='${e.yt}' target='_blank'>YouTube</a>`:''}
+            ${e.tt? `<a class='pill' href='${e.tt}' target='_blank'>TikTok</a>`:''}
+          </div>
+          <div class="row row-3" style="margin-top:8px">
+            ${e.book? `<a class='pill' href='mailto:${e.book}'>Booking</a>`:''}
+            ${e.mgmt? `<a class='pill' href='mailto:${e.mgmt}'>Management</a>`:''}
+            ${e.site? `<a class='pill' href='${e.site}' target='_blank'>Website</a>`:''}
+          </div>
+        </div>`;
+    }
+    document.getElementById('saveEPK').onclick = ()=> {
+      const bio = document.getElementById('epkBio').value.trim();
+      const photo = document.getElementById('epkPhoto').value.trim();
+      const insta = document.getElementById('epkInsta').value.trim();
+      const yt = document.getElementById('epkYt').value.trim();
+      const tt = document.getElementById('epkTt').value.trim();
+      const book = document.getElementById('epkBook').value.trim();
+      const mgmt = document.getElementById('epkMgmt').value.trim();
+      const site = document.getElementById('epkSite').value.trim();
+      const data = {bio, photo, insta, yt, tt, book, mgmt, site};
+      G.set('epk', data); renderEPK();
+    };
+
+    // ---------- Smart Links ----------
+    const smartList = document.getElementById('smartList');
+    function renderSmart(){
+      const list = S.get('smart');
+      smartList.innerHTML = list.map((s,i)=>`
+        <div class="card">
+          <div class="title-row">
+            <div><strong>${s.title||'Link'}</strong></div>
+            <div class="inline">
+              <a class="pill" href="${s.url}" target="_blank" rel="noopener">Open</a>
+              <button class="pill" onclick="delSmart(${i})">🗑️</button>
+            </div>
+          </div>
+        </div>`).join('') || '<div class="list-empty">No smart links yet.</div>';
+    }
+    function delSmart(i){ const a=S.get('smart'); a.splice(i,1); S.set('smart',a); renderSmart(); }
+    document.getElementById('addSmart').onclick = () => {
+      const title = document.getElementById('smartTitle').value.trim();
+      const url = document.getElementById('smartURL').value.trim();
+      if(!url) return;
+      const list=S.get('smart'); list.unshift({title,url}); S.set('smart',list);
+      document.getElementById('smartTitle').value=''; document.getElementById('smartURL').value=''; renderSmart();
+    };
+
+    // Initial render
+    renderReleases(); renderUnrel(); renderLyrics(); renderSet(); renderSmart(); renderEPK();
+
+    // Service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+
+    // Install prompt (PWA)
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.hidden = false;
+    });
+    installBtn.addEventListener('click', async () => {
+      installBtn.hidden = true;
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      }
+    });
+  </script>
+</body>
+</html>
